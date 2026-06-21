@@ -89,6 +89,47 @@ This means the system can be deployed on an AWS EC2 instance, Azure VM, Render/R
 
 For a cloud deployment, run the app on the VM/server you want to monitor. The dashboard will then show that server's actual resource usage.
 
+## Monitoring Another Server
+
+Run the optimizer on the main EC2 instance, then run the remote agent on any other server you want to monitor.
+
+Install the agent dependencies on the remote server:
+
+```bash
+sudo apt update
+sudo apt install -y git python3 python3-venv python3-pip
+git clone https://github.com/muhammadsohailmian24-spec/cloud-optimizer.git
+cd cloud-optimizer
+python3 -m venv .agent-venv
+source .agent-venv/bin/activate
+pip install psutil requests
+```
+
+Send one metric record to the optimizer:
+
+```bash
+python -m scripts.remote_agent \
+  --optimizer-url http://18.130.208.208:8000 \
+  --name app-server-13.42.48.29:4000 \
+  --provider AWS \
+  --resource-type "EC2 Application Server" \
+  --region eu-west-2 \
+  --once
+```
+
+Run continuously every 60 seconds:
+
+```bash
+python -m scripts.remote_agent \
+  --optimizer-url http://18.130.208.208:8000 \
+  --name app-server-13.42.48.29:4000 \
+  --provider AWS \
+  --resource-type "EC2 Application Server" \
+  --region eu-west-2
+```
+
+After the agent sends data, refresh the optimizer dashboard and run analysis.
+
 ## Docker
 
 ```powershell

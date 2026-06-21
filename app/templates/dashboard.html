@@ -47,6 +47,7 @@
             <tr>
               <th>Resource</th>
               <th>Provider</th>
+              <th>Type</th>
               <th>CPU</th>
               <th>Memory</th>
               <th>Disk</th>
@@ -58,6 +59,7 @@
             <tr>
               <td><a href="/resources/{{ item.resource.id }}">{{ item.resource.name }}</a></td>
               <td>{{ item.resource.provider }} {{ item.resource.instance_size }}</td>
+              <td>{{ item.resource.resource_type }}</td>
               <td>{{ item.metric.cpu_percent if item.metric else 0 }}%</td>
               <td>{{ item.metric.memory_percent if item.metric else 0 }}%</td>
               <td>{{ item.metric.disk_percent if item.metric else 0 }}%</td>

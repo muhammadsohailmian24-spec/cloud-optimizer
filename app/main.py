@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime
 from statistics import mean
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,6 +16,7 @@ from app.models import AiPrediction, CloudResource, CostRecord, Recommendation, 
 from app.services.ml import detect_anomalies, predict_daily_cost
 from app.services.live_metrics import collect_live_metric, ensure_local_resource
 from app.services.recommendations import build_recommendations
+from app.services.resource_registry import upsert_resource
 from app.services.sample_data import ensure_admin, seed_demo_data
 
 
@@ -71,6 +72,11 @@ def login_required(request: Request):
     if not is_logged_in(request):
         return RedirectResponse(url="/login", status_code=303)
     return None
+
+
+def verify_metrics_token(x_metrics_token: str = Header(default="")):
+    if settings.metrics_api_token and x_metrics_token != settings.metrics_api_token:
+        raise HTTPException(status_code=401, detail="Invalid metrics API token")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -187,8 +193,13 @@ def create_metric(
     network_in_mb: float = Form(...),
     network_out_mb: float = Form(...),
     response_time_ms: float = Form(120),
+    _: None = Depends(verify_metrics_token),
     db: Session = Depends(get_db),
 ):
+    resource = db.get(CloudResource, resource_id)
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+
     metric = ResourceMetric(
         resource_id=resource_id,
         cpu_percent=cpu_percent,
@@ -199,11 +210,32 @@ def create_metric(
         response_time_ms=response_time_ms,
     )
     db.add(metric)
-    resource = db.get(CloudResource, resource_id)
-    if resource:
-        db.add(CostRecord(resource_id=resource_id, estimated_cost=resource.hourly_cost))
+    db.add(CostRecord(resource_id=resource_id, estimated_cost=resource.hourly_cost))
     db.commit()
     return {"status": "stored", "timestamp": datetime.utcnow().isoformat()}
+
+
+@app.post("/api/resources/register")
+def register_resource(
+    name: str = Form(...),
+    provider: str = Form("Remote"),
+    resource_type: str = Form("Application Server"),
+    instance_size: str = Form("unknown"),
+    region: str = Form("unknown"),
+    hourly_cost: float = Form(0.02),
+    _: None = Depends(verify_metrics_token),
+    db: Session = Depends(get_db),
+):
+    resource = upsert_resource(
+        db,
+        name=name,
+        provider=provider,
+        resource_type=resource_type,
+        instance_size=instance_size,
+        region=region,
+        hourly_cost=hourly_cost,
+    )
+    return {"status": "registered", "resource_id": resource.id, "name": resource.name}
 
 
 @app.post("/api/analyse")
