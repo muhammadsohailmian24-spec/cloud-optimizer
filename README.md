@@ -114,6 +114,7 @@ python -m scripts.remote_agent \
   --provider AWS \
   --resource-type "EC2 Application Server" \
   --region eu-west-2 \
+  --health-url http://13.42.48.29:4000 \
   --once
 ```
 
@@ -125,7 +126,8 @@ python -m scripts.remote_agent \
   --name app-server-13.42.48.29:4000 \
   --provider AWS \
   --resource-type "EC2 Application Server" \
-  --region eu-west-2
+  --region eu-west-2 \
+  --health-url http://13.42.48.29:4000
 ```
 
 After the agent sends data, refresh the optimizer dashboard and run analysis.
