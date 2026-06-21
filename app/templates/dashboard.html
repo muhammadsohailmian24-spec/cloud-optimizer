@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="metric-card">
+      <span>Resources</span>
+      <strong>{{ resources|length }}</strong>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card">
+      <span>Monthly Cost</span>
+      <strong>${{ total_monthly_cost }}</strong>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card">
+      <span>Open Recommendations</span>
+      <strong>{{ recommendations|length }}</strong>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card">
+      <span>Monitoring State</span>
+      <strong>Active</strong>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2>Resource Monitoring</h2>
+        <div class="d-flex gap-2">
+          <form action="/collect-live" method="post">
+            <button class="btn btn-sm btn-primary" type="submit">Collect Live Metrics</button>
+          </form>
+          <form action="/analyse" method="post">
+            <button class="btn btn-sm btn-outline-primary" type="submit">Run Analysis</button>
+          </form>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>Resource</th>
+              <th>Provider</th>
+              <th>CPU</th>
+              <th>Memory</th>
+              <th>Disk</th>
+              <th>Cost/mo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in latest_metrics %}
+            <tr>
+              <td><a href="/resources/{{ item.resource.id }}">{{ item.resource.name }}</a></td>
+              <td>{{ item.resource.provider }} {{ item.resource.instance_size }}</td>
+              <td>{{ item.metric.cpu_percent if item.metric else 0 }}%</td>
+              <td>{{ item.metric.memory_percent if item.metric else 0 }}%</td>
+              <td>{{ item.metric.disk_percent if item.metric else 0 }}%</td>
+              <td>${{ "%.2f"|format(item.resource.hourly_cost * 24 * 30) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel">
+      <h2>Optimization Recommendations</h2>
+      {% if recommendations %}
+        {% for recommendation in recommendations %}
+        <div class="recommendation {{ recommendation.severity }}">
+          <strong>{{ recommendation.category|title }}</strong>
+          <p>{{ recommendation.message }}</p>
+          <span>Saving: ${{ recommendation.estimated_monthly_saving }}/mo</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-secondary">Collect live metrics, then run analysis to generate recommendations.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="resource-header">
+  <div>
+    <a href="/dashboard" class="text-secondary">Back to dashboard</a>
+    <h1>{{ resource.name }}</h1>
+    <p>{{ resource.provider }} {{ resource.resource_type }} - {{ resource.instance_size }} - {{ resource.region }}</p>
+  </div>
+  <div class="prediction-box">
+    <span>Predicted Daily Cost</span>
+    <strong>${{ prediction.predicted_daily_cost }}</strong>
+    <small>Confidence {{ prediction.confidence }}</small>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Last 48 Metric Records</h2>
+  <canvas id="metricChart" height="90"></canvas>
+</section>
+
+<script>
+const labels = {{ metric_labels|tojson }};
+const cpu = {{ metrics|map(attribute='cpu_percent')|list|tojson }};
+const memory = {{ metrics|map(attribute='memory_percent')|list|tojson }};
+const disk = {{ metrics|map(attribute='disk_percent')|list|tojson }};
+
+new Chart(document.getElementById('metricChart'), {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'CPU %', data: cpu, borderColor: '#2563eb', tension: 0.25 },
+      { label: 'Memory %', data: memory, borderColor: '#16a34a', tension: 0.25 },
+      { label: 'Disk %', data: disk, borderColor: '#f59e0b', tension: 0.25 }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: { y: { min: 0, max: 100 } }
+  }
+});
+</script>
+{% endblock %}
